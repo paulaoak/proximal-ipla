@@ -1,0 +1,19 @@
+#!/bin/bash
+#PBS -N simulation_500_particles_pipgla
+#PBS -l nodes=1:ppn=10
+#PBS -q parallel16
+#PBS -j oe
+#PBS -m be
+
+
+# Activate your virtual environment 
+source ~/miniconda3/bin/activate 
+conda init
+conda activate miniproject
+
+# Change to the directory from which the job was submitted
+cd $PBS_O_WORKDIR
+
+
+# Execute your script using mpiexec
+python3 simulation_500_particles_pipgla.py
