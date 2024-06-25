@@ -1,0 +1,19 @@
+#!/bin/bash
+#PBS -N multi_ppgd_approx
+#PBS -l nodes=1:ppn=10
+#PBS -q parallel16
+#PBS -j oe
+#PBS -m be
+
+
+# Activate your virtual environment 
+source ~/miniconda3/bin/activate 
+conda init
+conda activate miniproject
+
+# Change to the directory from which the job was submitted
+cd $PBS_O_WORKDIR
+
+
+# Execute your script using mpiexec
+python3 multi_ppgd_approx.py
