@@ -15,10 +15,13 @@ import tensorflow_probability.substrates.jax as tfp
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
 ##############################################################
-## PROXIMAL PARTICLE ALGORITHMS
+## PROXIMAL PARTICLE ALGORITHMS FOR BNN
 ##############################################################
 
-def pip_myula_bnn(ltrain, itrain, ltest, itest, h, K, a, b, w, v, gamma):
+####################################
+## MOREAU-YOSIDA IPLA
+####################################
+def my_ipla_bnn(ltrain, itrain, ltest, itest, h, K, a, b, w, v, gamma):
     # Extract dimensions of latent variables:
     Dw = w[:, :, 0].size  # Dimension of w.
     Dv = v[:, :, 0].size  # Dimension of v.
@@ -30,7 +33,7 @@ def pip_myula_bnn(ltrain, itrain, ltest, itest, h, K, a, b, w, v, gamma):
 
     for k in (tqdm(range(K))): 
         # Evaluate metrics for current particle cloud:
-        lppd[k] = log_pointwise_predrictive_density(w, v, itest, ltest)
+        lppd[k] = log_pointwise_predictive_density(w, v, itest, ltest)
         error[k] = test_error(w, v, itest, ltest)
 
         # Temporarily store current particle cloud:
@@ -54,41 +57,7 @@ def pip_myula_bnn(ltrain, itrain, ltest, itest, h, K, a, b, w, v, gamma):
     return a, b, w, v, lppd, error
 
 
-def my_pgd_bnn(ltrain, itrain, ltest, itest, h, K, a, b, w, v, gamma):
-    # Extract dimensions of latent variables:
-    Dw = w[:, :, 0].size  # Dimension of w.
-    Dv = v[:, :, 0].size  # Dimension of v.
-    N = w.shape[-1] # Number of particles.
-
-    # Initialize arrays storing performance metrics as a function of k:
-    lppd = np.zeros(K)  # Log pointwise predictive density (LPPD).
-    error = np.zeros(K)  # Test error.
-
-    for k in (tqdm(range(K))): 
-        # Evaluate metrics for current particle cloud:
-        lppd[k] = log_pointwise_predrictive_density(w, v, itest, ltest)
-        error[k] = test_error(w, v, itest, ltest)
-
-        # Temporarily store current particle cloud:
-        wk = w  # Input layer weights.
-        vk = v  # Output layer weights.
-
-        # Update parameter estimates (note that we are using the heuristic consisting on dividing the 
-        # alpha-gradient by Dw and the beta-gradient by Dv):
-
-        a = np.append(a, a[k]* (1-h/gamma) + h*ave_proximal_param(wk, a[k], gamma)/(Dw*gamma) -2 * h)  # Alpha.
-        b = np.append(b, b[k]* (1-h/gamma) + h*ave_proximal_param(vk, b[k], gamma)/(Dv*gamma) -2 * h)  # Beta.
-
-        # Update particle cloud:
-        w = (w * (1-h/gamma) + h*wgrad(wk, vk, itrain, ltrain) + h * approx_proximal_particle(wk, a[k], gamma)/gamma
-               + jnp.sqrt(2*h) * np.random.normal(0, 1, w.shape)) 
-        v = (v * (1-h/gamma) + h*vgrad(wk, vk, itrain, ltrain) + h * approx_proximal_particle(vk, b[k], gamma)/gamma
-               + jnp.sqrt(2*h) * np.random.normal(0, 1, v.shape))
-
-    return a, b, w, v, lppd, error
-
-
-def pip_myula_bnn_performance(ltrain, itrain, h, K, a, b, w, v, gamma):
+def my_ipla_bnn_performance(ltrain, itrain, h, K, a, b, w, v, gamma):
     # Extract dimensions of latent variables:
     Dw = w[:, :, 0].size  # Dimension of w.
     Dv = v[:, :, 0].size  # Dimension of v.
@@ -116,6 +85,44 @@ def pip_myula_bnn_performance(ltrain, itrain, h, K, a, b, w, v, gamma):
     return a, b, w, v
 
 
+####################################
+## MOREAU-YOSIDA PGD
+####################################
+
+def my_pgd_bnn(ltrain, itrain, ltest, itest, h, K, a, b, w, v, gamma):
+    # Extract dimensions of latent variables:
+    Dw = w[:, :, 0].size  # Dimension of w.
+    Dv = v[:, :, 0].size  # Dimension of v.
+    N = w.shape[-1] # Number of particles.
+
+    # Initialize arrays storing performance metrics as a function of k:
+    lppd = np.zeros(K)  # Log pointwise predictive density (LPPD).
+    error = np.zeros(K)  # Test error.
+
+    for k in (tqdm(range(K))): 
+        # Evaluate metrics for current particle cloud:
+        lppd[k] = log_pointwise_predictive_density(w, v, itest, ltest)
+        error[k] = test_error(w, v, itest, ltest)
+
+        # Temporarily store current particle cloud:
+        wk = w  # Input layer weights.
+        vk = v  # Output layer weights.
+
+        # Update parameter estimates (note that we are using the heuristic consisting on dividing the 
+        # alpha-gradient by Dw and the beta-gradient by Dv):
+
+        a = np.append(a, a[k]* (1-h/gamma) + h*ave_proximal_param(wk, a[k], gamma)/(Dw*gamma) -2 * h)  # Alpha.
+        b = np.append(b, b[k]* (1-h/gamma) + h*ave_proximal_param(vk, b[k], gamma)/(Dv*gamma) -2 * h)  # Beta.
+
+        # Update particle cloud:
+        w = (w * (1-h/gamma) + h*wgrad(wk, vk, itrain, ltrain) + h * approx_proximal_particle(wk, a[k], gamma)/gamma
+               + jnp.sqrt(2*h) * np.random.normal(0, 1, w.shape)) 
+        v = (v * (1-h/gamma) + h*vgrad(wk, vk, itrain, ltrain) + h * approx_proximal_particle(vk, b[k], gamma)/gamma
+               + jnp.sqrt(2*h) * np.random.normal(0, 1, v.shape))
+
+    return a, b, w, v, lppd, error
+
+
 def my_pgd_bnn_performance(ltrain, itrain, h, K, a, b, w, v, gamma):
     # Extract dimensions of latent variables:
     Dw = w[:, :, 0].size  # Dimension of w.
@@ -138,6 +145,82 @@ def my_pgd_bnn_performance(ltrain, itrain, h, K, a, b, w, v, gamma):
                + jnp.sqrt(2*h) * np.random.normal(0, 1, w.shape)) 
         v = (v * (1-h/gamma) + h*vgrad(wk, vk, itrain, ltrain) + h * approx_proximal_particle(vk, b[k], gamma)/gamma
                + jnp.sqrt(2*h) * np.random.normal(0, 1, v.shape))
+
+    return a, b, w, v
+
+
+####################################
+## PROXIMAL GRADIENT LANGEVIN ALGORITHMS
+####################################
+
+def pip_gla_bnn(ltrain, itrain, ltest, itest, h, K, a, b, w, v, gamma):
+    # Extract dimensions of latent variables:
+    Dw = w[:, :, 0].size  # Dimension of w.
+    Dv = v[:, :, 0].size  # Dimension of v.
+    N = w.shape[-1] # Number of particles.
+
+    # Initialize arrays storing performance metrics as a function of k:
+    lppd = np.zeros(K)  # Log pointwise predictive density (LPPD).
+    error = np.zeros(K)  # Test error.
+
+    for k in (tqdm(range(K))): 
+        # Evaluate metrics for current particle cloud:
+        lppd[k] = log_pointwise_predictive_density(w, v, itest, ltest)
+        error[k] = test_error(w, v, itest, ltest)
+
+        # Temporarily store current particle cloud:
+        wk = w  # Input layer weights.
+        vk = v  # Output layer weights.
+
+        # We are using the heuristic consisting on dividing the 
+        # alpha-gradient by Dw and the beta-gradient by Dv):
+        ak_aux = (a[k] + jnp.sqrt(2*h/(N))*np.random.normal(0, 1, 1))
+        wk_aux = (w + h*wgrad(wk, vk, itrain, ltrain) + jnp.sqrt(2*h) * np.random.normal(0, 1, w.shape)) 
+        
+        a = np.append(a, ave_proximal_param(wk_aux, ak_aux, gamma)/Dw) # Alpha.   
+
+        bk_aux = (b[k] + jnp.sqrt(2*h/(N))*np.random.normal(0, 1, 1))
+        vk_aux = (v + h*vgrad(wk, vk, itrain, ltrain) + jnp.sqrt(2*h) * np.random.normal(0, 1, v.shape))
+        
+        b = np.append(b, ave_proximal_param(vk_aux, bk_aux, gamma)/Dw)  # Beta.   
+
+        # Update particle cloud:
+        w = approx_proximal_particle(wk_aux, ak_aux, gamma)
+
+        v = approx_proximal_particle(vk_aux, bk_aux, gamma)
+
+    return a, b, w, v, lppd, error
+
+
+def pip_pgla_bnn_performance(ltrain, itrain, h, K, a, b, w, v, gamma):
+    # Extract dimensions of latent variables:
+    Dw = w[:, :, 0].size  # Dimension of w.
+    Dv = v[:, :, 0].size  # Dimension of v.
+    N = w.shape[-1] # Number of particles.
+
+
+    for k in (tqdm(range(K))): 
+        # Temporarily store current particle cloud:
+        wk = w  # Input layer weights.
+        vk = v  # Output layer weights.
+
+
+        # We are using the heuristic consisting on dividing the 
+        # alpha-gradient by Dw and the beta-gradient by Dv):
+        ak_aux = (a[k] + jnp.sqrt(2*h/(N))*np.random.normal(0, 1, 1))
+        wk_aux = (w + h*wgrad(wk, vk, itrain, ltrain) + jnp.sqrt(2*h) * np.random.normal(0, 1, w.shape)) 
+        
+        a = np.append(a, ave_proximal_param(wk_aux, ak_aux, gamma)/Dw) # Alpha.   
+
+        bk_aux = (b[k] + jnp.sqrt(2*h/(N))*np.random.normal(0, 1, 1))
+        vk_aux = (v + h*vgrad(wk, vk, itrain, ltrain) + jnp.sqrt(2*h) * np.random.normal(0, 1, v.shape))
+        
+        b = np.append(b, ave_proximal_param(vk_aux, bk_aux, gamma)/Dw)  # Beta.  
+
+        # Update particle cloud:
+        w = approx_proximal_particle(wk_aux, ak_aux, gamma)
+
+        v = approx_proximal_particle(vk_aux, bk_aux, gamma)
 
     return a, b, w, v
 
@@ -238,7 +321,7 @@ def _nn_vec_vec(w, v, images):
 
 
 @jax.jit
-def log_pointwise_predrictive_density(w, v, images, labels):
+def log_pointwise_predictive_density(w, v, images, labels):
     """Returns LPPD for set of (test) images and labels."""
     s = _nn_vec_vec(w, v, images).mean(2)
     return jnp.log(s[jnp.arange(labels.size), labels]).mean()
