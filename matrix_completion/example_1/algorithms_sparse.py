@@ -67,58 +67,6 @@ def pip_myula_matrix_sparse(Y_s, mask_s, h, K, a, Theta, X, gamma, dim_bias, tru
 
     return a, Thetas, X, error, error_missing, log_density_vec, error_theta
 
-
-
-def pip_myula_matrix_sparse_basis(Y_s, mask_s, h, K, a, Theta, X, gamma, dim_bias, true_matrix = None, theta_true = None):
-    # Extract dimensions of latent variables:
-    Dx = X[:, :, :, 0].size  # Dimension of X.
-    N = X.shape[-1] # Number of particles.
-    DY = dim_bias
-    Thetas = []
-    Thetas.append(Theta)
-
-    # Initialize arrays storing performance metrics as a function of k:
-    error = np.zeros(K)  # Test error.
-    log_density_vec = np.zeros(K)  # Log density.
-    error_missing = np.zeros(K)  # Test error on missing entries.
-    error_theta = np.zeros(K)  # Test error of basis matrix Theta.
-
-    for k in (tqdm(range(K))): 
-        # Evaluate metrics for current particle cloud:
-        if (true_matrix is not None) & (theta_true is not None):
-
-            error[k] = mean_square_error(true_matrix, X)
-
-            theta_recover = Thetas[k]
-            
-            recover_Y = jnp.tensordot(theta_recover, X, axes=([1], [0]))
-            true_Y = jnp.tensordot(theta_true, true_matrix, axes=([1], [0]))
-
-            error_missing[k] = mean_square_error_missing(true_Y, recover_Y, mask_s)
-
-            log_density_vec[k]= jnp.mean(log_density(Y_s, recover_Y, mask_s, a[k]))
-
-            error_theta[k] = jnp.sum((theta_true - theta_recover)**2)/jnp.sum(theta_true**2)
-
-        # Temporarily store current particle cloud:
-        Xk = X  # Matrix estimated entries.
-        Theta_k = Thetas[k]  # Basis matrix.
-
-        # Update parameter estimates using heuristic 
-
-        a = np.append(a, a[k]* (1-h/gamma) + h*ave_proximal_param_reg(Xk, a[k], gamma)/(DY*gamma)
-                      + jnp.sqrt(2*h/N)*np.random.normal(0, 1, 1))  # Alpha.
-        
-        Thetas.append(Theta_k - h * ave_grad_param_basis(X, mask_s, Y_s, Theta_k)/DY - h * (Theta_k-1.5)/DY 
-                      + jnp.sqrt(2*h/N)*np.random.normal(0, 1, Theta_k.shape))  # Theta basis matrix.
-
-        # Update particle cloud:
-        X = (X * (1-h/gamma) - h * wgrad(X, mask_s, Y_s, Theta_k) + h * approx_proximal_particle(Xk, a[k], gamma)/gamma
-               + jnp.sqrt(2*h) * np.random.normal(0, 1, X.shape)) 
-
-    return a, Thetas, X, error, error_missing, log_density_vec, error_theta
-
-
 ##############################
 # Auxiliary functions.
 ##############################
