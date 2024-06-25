@@ -43,9 +43,9 @@ def my_ipla_bnn(ltrain, itrain, ltest, itest, h, K, a, b, w, v, gamma):
         # Update parameter estimates (note that we are using the heuristic consisting on dividing the 
         # alpha-gradient by Dw and the beta-gradient by Dv):
 
-        a = np.append(a, a[k]* (1-h/gamma) + h*ave_proximal_param(wk, a[k], gamma)/(Dw*gamma)- 2*h 
+        a = np.append(a, a[k]* (1-h/gamma) + h*ave_proximal_param(wk, a[k], gamma)/(Dw*gamma)
                       + jnp.sqrt(2*h/N)*np.random.normal(0, 1, 1))  # Alpha.
-        b = np.append(b, b[k]* (1-h/gamma) + h*ave_proximal_param(vk, b[k], gamma)/(Dv*gamma)- 2*h 
+        b = np.append(b, b[k]* (1-h/gamma) + h*ave_proximal_param(vk, b[k], gamma)/(Dv*gamma)
                       + jnp.sqrt(2*h/N)*np.random.normal(0, 1, 1))  # Beta.
 
         # Update particle cloud:
@@ -71,9 +71,9 @@ def my_ipla_bnn_performance(ltrain, itrain, h, K, a, b, w, v, gamma):
         # Update parameter estimates (note that we are using the heuristic consisting on dividing the 
         # alpha-gradient by Dw and the beta-gradient by Dv):
 
-        a = np.append(a, a[k]* (1-h/gamma) + h*ave_proximal_param(wk, a[k], gamma)/(Dw*gamma) -2 * h
+        a = np.append(a, a[k]* (1-h/gamma) + h*ave_proximal_param(wk, a[k], gamma)/(Dw*gamma) 
                       + jnp.sqrt(2*h/N)*np.random.normal(0, 1, 1))  # Alpha.
-        b = np.append(b, b[k]* (1-h/gamma) + h*ave_proximal_param(vk, b[k], gamma)/(Dv*gamma) -2 * h
+        b = np.append(b, b[k]* (1-h/gamma) + h*ave_proximal_param(vk, b[k], gamma)/(Dv*gamma) 
                       + jnp.sqrt(2*h/N)*np.random.normal(0, 1, 1))  # Beta.
 
         # Update particle cloud:
@@ -111,8 +111,8 @@ def my_pgd_bnn(ltrain, itrain, ltest, itest, h, K, a, b, w, v, gamma):
         # Update parameter estimates (note that we are using the heuristic consisting on dividing the 
         # alpha-gradient by Dw and the beta-gradient by Dv):
 
-        a = np.append(a, a[k]* (1-h/gamma) + h*ave_proximal_param(wk, a[k], gamma)/(Dw*gamma) -2 * h)  # Alpha.
-        b = np.append(b, b[k]* (1-h/gamma) + h*ave_proximal_param(vk, b[k], gamma)/(Dv*gamma) -2 * h)  # Beta.
+        a = np.append(a, a[k]* (1-h/gamma) + h*ave_proximal_param(wk, a[k], gamma)/(Dw*gamma))  # Alpha.
+        b = np.append(b, b[k]* (1-h/gamma) + h*ave_proximal_param(vk, b[k], gamma)/(Dv*gamma))  # Beta.
 
         # Update particle cloud:
         w = (w * (1-h/gamma) + h*wgrad(wk, vk, itrain, ltrain) + h * approx_proximal_particle(wk, a[k], gamma)/gamma
@@ -137,8 +137,8 @@ def my_pgd_bnn_performance(ltrain, itrain, h, K, a, b, w, v, gamma):
         # Update parameter estimates (note that we are using the heuristic consisting on dividing the 
         # alpha-gradient by Dw and the beta-gradient by Dv):
 
-        a = np.append(a, a[k]* (1-h/gamma) + h*ave_proximal_param(wk, a[k], gamma)/(Dw*gamma) -2 * h)  # Alpha.
-        b = np.append(b, b[k]* (1-h/gamma) + h*ave_proximal_param(vk, b[k], gamma)/(Dv*gamma) -2 * h)  # Beta.
+        a = np.append(a, a[k]* (1-h/gamma) + h*ave_proximal_param(wk, a[k], gamma)/(Dw*gamma))  # Alpha.
+        b = np.append(b, b[k]* (1-h/gamma) + h*ave_proximal_param(vk, b[k], gamma)/(Dv*gamma))  # Beta.
 
         # Update particle cloud:
         w = (w * (1-h/gamma) + h*wgrad(wk, vk, itrain, ltrain) + h * approx_proximal_particle(wk, a[k], gamma)/gamma
