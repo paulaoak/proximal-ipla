@@ -7,7 +7,7 @@ import pickle
 project_root = os.path.abspath(os.path.join(os.getcwd(), '..', '..'))
 sys.path.append(project_root)
 
-from logistic_regression.algorithms import pip_ula, sig, mypipla, mypgd, prox_pgd, proximal_map_laplace_iteration_total, proximal_map_laplace_iterative, proximal_map_laplace_approx, proximal_map_laplace_approx_total, proximal_map_uniform, proximal_map_uniform_my, pipgla, proximal_map_uniform_new
+from logistic_regression.algorithms import pip_ula, sig, mypipla, mypgd, prox_pgd, proximal_map_laplace_iteration_total, proximal_map_laplace_iterative, proximal_map_laplace_approx, proximal_map_laplace_approx_total, pipgla, proximal_map_uniform_new
 
 os.chdir(project_root)
 

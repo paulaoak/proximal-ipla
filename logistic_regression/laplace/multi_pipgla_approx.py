@@ -4,21 +4,21 @@ from multiprocessing import Pool, cpu_count
 import numpy as np
 import pickle
 
-project_root = os.path.abspath(os.path.join(os.getcwd(), '..', '..', '..'))
+project_root = os.path.abspath(os.path.join(os.getcwd(), '..', '..'))
 sys.path.append(project_root)
 
-from proximal_algorithms.logistic_regression.algorithms import pip_ula, sig, mypipla, mypgd, prox_pgd, proximal_map_laplace_iteration_total, proximal_map_laplace_iterative, proximal_map_laplace_approx, proximal_map_laplace_approx_total, proximal_map_uniform, proximal_map_uniform_my, pipgla
+from logistic_regression.algorithms import pip_ula, sig, mypipla, mypgd, prox_pgd, proximal_map_laplace_iteration_total, proximal_map_laplace_iterative, proximal_map_laplace_approx, proximal_map_laplace_approx_total, pipgla
 
 os.chdir(project_root)
 
 output_file = "output_pipgla_approx_laplace.txt"
 
 # Define the relative directory and filename
-output_dir = "./proximal_algorithms/logistic_regression/outputs"
+output_dir = "./logistic_regression/laplace/outputs"
 os.makedirs(output_dir, exist_ok=True)
 
 # Define the relative directory and filename
-dir_experiment_data = "./proximal_algorithms/logistic_regression/input"
+dir_experiment_data = "./logistic_regression/laplace/input"
 # Construct the full path
 experiment_data_filename = os.path.join(dir_experiment_data, "data_experiment_laplace.pickle")
     
