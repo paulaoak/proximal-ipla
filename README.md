@@ -1,0 +1,1 @@
+Repository with Proximal Interacting Particle Langevin Algorithms, to perform learning and inference in latent variable models with non-differentiable target.
