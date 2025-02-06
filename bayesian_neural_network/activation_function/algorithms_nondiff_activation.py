@@ -49,16 +49,9 @@ def my_ipla_bnn_activation(ltrain, itrain, ltest, itest, h, K, a, b, w, v, gamma
                       + jnp.sqrt(2*h/N)*np.random.normal(0, 1, 1))  # Beta.
 
         # Update particle cloud:
-        aa, bb, cc = wprox(wk, vk, a[k], b[k], itrain, ltrain)
-        print(bb, cc)
-        print(aa.shape, np.sum(aa), "lets see")
-
-        ee = wgrad(wk, vk, a[k], b[k], itrain, ltrain)
-        print(ee.shape, "lets see")
-        # print(aa.shape,aa)
-
-        # print(b.shape, a.shape, wgrad(wk, vk, a[k], b[k], itrain, ltrain).shape, b)
-        w = (w  + h*wgrad(wk, vk, a[k], b[k], itrain, ltrain) + h*aa #wprox(wk, vk, a[k], b[k], itrain, ltrain) 
+        prox = wprox(wk, vk, a[k], b[k], itrain, ltrain)
+        
+        w = (w  + h*wgrad(wk, vk, a[k], b[k], itrain, ltrain) + h*prox   #wprox(wk, vk, a[k], b[k], itrain, ltrain) 
                + jnp.sqrt(2*h) * np.random.normal(0, 1, w.shape)) 
         v = (v + h*vgrad(wk, vk, a[k], b[k], itrain, ltrain) 
                + jnp.sqrt(2*h) * np.random.normal(0, 1, v.shape))
@@ -133,6 +126,33 @@ def my_pgd_bnn_activation(ltrain, itrain, ltest, itest, h, K, a, b, w, v, gamma)
     return a, b, w, v, lppd, error
 
 
+def my_ipla_bnn_performance_activation(ltrain, itrain, h, K, a, b, w, v, gamma):
+    # Extract dimensions of latent variables:
+    Dw = w[:, :, 0].size  # Dimension of w.
+    Dv = v[:, :, 0].size  # Dimension of v.
+    N = w.shape[-1] # Number of particles.
+
+    for k in (tqdm(range(K))): 
+        # Temporarily store current particle cloud:
+        wk = w  # Input layer weights.
+        vk = v  # Output layer weights.
+
+        # Update parameter estimates (note that we are using the heuristic consisting on dividing the 
+        # alpha-gradient by Dw and the beta-gradient by Dv):
+
+        a = np.append(a, a[k] + h*ave_grad_param(wk, a[k])/(Dw))  # Alpha.
+        b = np.append(b, b[k] + h*ave_grad_param(vk, b[k])/(Dv))  # Beta.
+
+        # Update particle cloud:
+        w = (w + h*wgrad(wk, vk, a[k], b[k], itrain, ltrain) + h*wprox(wk, vk, a[k], b[k], itrain, ltrain)
+               + jnp.sqrt(2*h) * np.random.normal(0, 1, w.shape)) 
+        
+        v = (v + h*vgrad(wk, vk, a[k], b[k], itrain, ltrain)
+               + jnp.sqrt(2*h) * np.random.normal(0, 1, v.shape))
+
+    return a, b, w, v
+
+
 ##############################################
 # AUXILIARY FUNCTIONS
 ##############################################
@@ -159,40 +179,28 @@ def _compute_expression(w, v, image, lambdaa=0.001):
     # (2, 40) @pointwise (40,) → (2, 40) then broadcasted with (1, 1, 784)
     term1 = (v * prox_h_nondiff_values[None, :])[:, :, None] * image.reshape(1, 1, 784)  # Shape (2, 40, 784)
     
-    # To compute the second term
-    # Compute exp_terms: (2, 40) @ (40,) → (2,)
-    # exp_terms = jnp.exp(jnp.dot(v, h_nondiff(hidden_product)))  # Shape (2,)
-    
-    # Compute numerator: (2,) @ (2,40, 784) → (40,784)
-    exp_terms_log = jnp.dot(v, h_nondiff(hidden_product))[None, :] - jnp.dot(v, h_nondiff(hidden_product))[:, None]
-    #numerator = jax.scipy.special.logsumexp(exp_terms_log[:, None] + vlog, axis = 0)  
-    #denominator = jax.scipy.special.logsumexp(exp_terms_log)
-    #second_term = (jnp.exp(numerator - denominator) * prox_h_nondiff_values)[:, None] * image.reshape(1, 784)
-    #second_term_expand = jnp.repeat(jnp.expand_dims(second_term, axis= 0), 2, axis=0)
+    # To compute the second term, we need to use logsumexp to avoid nan values
+
+    # Start by computing the weights of the sum in the second term (obtain the arguments of the exponential)
+    exp_terms_log = -jnp.dot(v, h_nondiff(hidden_product))[None, :] + jnp.dot(v, h_nondiff(hidden_product))[:, None] # Shape (2, 2)
 
     max_log = jnp.max(exp_terms_log)  # Find max value for stability
     stable_exp_terms_log = exp_terms_log - max_log  # Shift values down
-    denominator = jnp.exp(-(jax.scipy.special.logsumexp(stable_exp_terms_log, axis = 0) + max_log))
-    numerator = jnp.einsum("b, bmn -> mn", denominator, term1)
+    # Apply logsumexp and then recover the weights
+    weights = jnp.exp(-(jax.scipy.special.logsumexp(stable_exp_terms_log, axis = 0) + max_log)) # Shape (2,)
+
+    numerator = jnp.einsum("b, bmn -> mn", weights, term1) # Shape (40, 784)
     second_term_expand = jnp.repeat(jnp.expand_dims(numerator, axis= 0), 2, axis=0) # Shape (2, 40, 784)
-    
-    #numerator = jnp.einsum("b, bmn -> mn", exp_terms, term1)  # Shape (40, 784)
-    #numerator_expand = jnp.repeat(jnp.expand_dims(numerator, axis= 0), 2, axis=0) # Shape (2, 40, 784)
 
-    # Compute denominator: scalar
-    #denominator = jnp.sum(exp_terms)  # Shape ()
-
-    prox_grad = term1 -second_term_expand #- numerator_expand / denominator # Shape (2, 40, 784)
+    prox_grad = term1 -second_term_expand # Shape (2, 40, 784)
     
-    # create a tensor of the same dize as prox_grad_repeated
-    # return prox_grad_repeated # Shape (2, 40, 784)
-    return prox_grad, second_term_expand
+    return prox_grad
 
 
 def _prox_computation_vec(w, v, images, labels, lambdaa=0.001):
     # _log_nn vectorized over particles.
-    _aux_prox, ee, oo = jax.vmap(_compute_expression, in_axes=(None, None, 0, None))(w, v, images, lambdaa)
-    return (_aux_prox[jnp.arange(labels.size), labels, :, :]).sum(axis=0), ee, oo
+    _aux_prox = jax.vmap(_compute_expression, in_axes=(None, None, 0, None))(w, v, images, lambdaa)
+    return (_aux_prox[jnp.arange(labels.size), labels, :, :]).sum(axis=0)
 
 
 @jax.jit
