@@ -49,7 +49,15 @@ def my_ipla_bnn_activation(ltrain, itrain, ltest, itest, h, K, a, b, w, v, gamma
                       + jnp.sqrt(2*h/N)*np.random.normal(0, 1, 1))  # Beta.
 
         # Update particle cloud:
-        w = (w  + h*wgrad(wk, vk, a[k], b[k], itrain, ltrain) + h*wprox(wk, vk, a[k], b[k], itrain, ltrain) 
+        aa = wprox(wk, vk, a[k], b[k], itrain, ltrain)
+        print(aa.shape, np.sum(aa), "lets see")
+
+        ee = wgrad(wk, vk, a[k], b[k], itrain, ltrain)
+        print(ee.shape, "lets see")
+        # print(aa.shape,aa)
+
+        # print(b.shape, a.shape, wgrad(wk, vk, a[k], b[k], itrain, ltrain).shape, b)
+        w = (w  + h*wgrad(wk, vk, a[k], b[k], itrain, ltrain) + h*aa #wprox(wk, vk, a[k], b[k], itrain, ltrain) 
                + jnp.sqrt(2*h) * np.random.normal(0, 1, w.shape)) 
         v = (v + h*vgrad(wk, vk, a[k], b[k], itrain, ltrain) 
                + jnp.sqrt(2*h) * np.random.normal(0, 1, v.shape))
@@ -90,7 +98,7 @@ def my_ipla_bnn_performance_activation(ltrain, itrain, h, K, a, b, w, v, gamma):
 # PROXIMAL PARTICLE GRADIENT DESCENT ALGORITHM
 ##############################################
 
-def my_ipla_bnn_activation(ltrain, itrain, ltest, itest, h, K, a, b, w, v, gamma):
+def my_pgd_bnn_activation(ltrain, itrain, ltest, itest, h, K, a, b, w, v, gamma):
     # Extract dimensions of latent variables:
     Dw = w[:, :, 0].size  # Dimension of w.
     Dv = v[:, :, 0].size  # Dimension of v.
@@ -146,29 +154,29 @@ def _compute_expression(w, v, image, lambdaa=0.001):
     # Compute the proximity function values
     prox_h_nondiff_values = prox_h_nondiff(hidden_product, lambdaa)  # Shape (40,)
     
-    # (2, 40) @ (40,) → (2,) then broadcasted with (784,)
-    term1 = jnp.dot(v, prox_h_nondiff_values)[:, None] * image.reshape((1, 784))  # Shape (2, 784)
+    # (2, 40) @pointwise (40,) → (2, 40) then broadcasted with (784,)
+    term1 = (v * prox_h_nondiff_values[None, :])[:, :, None] * image.reshape(1, 1, 784)  # Shape (2, 40, 784)
     
     # Compute exp_terms: (2, 40) @ (40,) → (2,)
     exp_terms = jnp.exp(jnp.dot(v, h_nondiff(hidden_product)))  # Shape (2,)
     
-    # Compute numerator: (2,) @ (2,) → (1,) then broadcasted with (784,)
-    numerator = jnp.dot(exp_terms, jnp.dot(v, prox_h_nondiff_values)) * image.reshape((1, 784))  # Shape (1, 784)
-    numerator_expand = jnp.repeat(numerator, 2, axis=0) # Shape (2, 784)
+    # Compute numerator: (2,) @ (2,40, 784) → (40,784)
+    numerator = jnp.einsum("b, bmn -> mn", exp_terms, term1)  # Shape (40, 784)
+    numerator_expand = jnp.repeat(jnp.expand_dims(numerator, axis= 0), 2, axis=0) # Shape (2, 40, 784)
 
     # Compute denominator: scalar
     denominator = jnp.sum(exp_terms)  # Shape ()
 
-    prox_grad = term1 - numerator_expand / denominator # Shape (2, 784)
-    prox_grad_repeated = jnp.repeat(jnp.expand_dims(prox_grad, axis=1), 40, axis=1) 
+    prox_grad = term1 #- numerator_expand / denominator # Shape (2, 40, 784)
     
-    return prox_grad_repeated # Shape (2, 40, 784)
+    # create a tensor of the same dize as prox_grad_repeated
+    # return prox_grad_repeated # Shape (2, 40, 784)
+    return prox_grad
 
 
 def _prox_computation_vec(w, v, images, labels, lambdaa=0.001):
     # _log_nn vectorized over particles.
     _aux_prox = jax.vmap(_compute_expression, in_axes=(None, None, 0, None))(w, v, images, lambdaa)
-
     return (_aux_prox[jnp.arange(labels.size), labels, :, :]).sum(axis=0)
 
 
@@ -206,6 +214,7 @@ def _log_density(w, v, a, b, images, labels):
     # Log of model density, vectorized over particles.
     out = _log_prior(w, a) + _log_prior(v, b)
     return out + _log_likelihood(w, v, images, labels)
+
 
 def _log_density_no_likelihood(w, v, a, b, images, labels):
     # Log of model density, vectorized over particles.
