@@ -10,7 +10,6 @@ from tqdm import tqdm
 import numpy as np
 import jax
 import jax.numpy as jnp
-import tensorflow_probability.substrates.jax as tfp
 
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
