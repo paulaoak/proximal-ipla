@@ -87,6 +87,78 @@ def my_ipla_bnn_performance_activation(ltrain, itrain, h, K, a, b, w, v, gamma):
 
     return a, b, w, v
 
+####################################
+## PIPGLA
+####################################
+def pipgla_bnn_activation(ltrain, itrain, ltest, itest, h, K, a, b, w, v, gamma):
+    # Extract dimensions of latent variables:
+    Dw = w[:, :, 0].size  # Dimension of w.
+    Dv = v[:, :, 0].size  # Dimension of v.
+    N = w.shape[-1] # Number of particles. 
+
+    # Initialize arrays storing performance metrics as a function of k:
+    lppd = np.zeros(K)  # Log pointwise predictive density (LPPD).
+    error = np.zeros(K)  # Test error.
+
+    for k in (tqdm(range(K))): 
+        # Evaluate metrics for current particle cloud:
+        lppd[k] = log_pointwise_predictive_density(w, v, itest, ltest)
+        error[k] = test_error(w, v, itest, ltest)
+
+        # Temporarily store current particle cloud:
+        wk = w  # Input layer weights.
+        vk = v  # Output layer weights.
+
+        # Update parameter estimates (note that we are using the heuristic consisting on dividing the 
+        # alpha-gradient by Dw and the beta-gradient by Dv):
+
+        a = np.append(a, a[k] + h*ave_grad_param(wk, a[k])/(Dw)
+                      + jnp.sqrt(2*h/N)*np.random.normal(0, 1, 1))  # Alpha.
+        b = np.append(b, b[k] + h*ave_grad_param(vk, b[k])/(Dv)
+                      + jnp.sqrt(2*h/N)*np.random.normal(0, 1, 1))  # Beta.
+
+        # Update particle cloud:
+        w = (w  + h*wgrad(wk, vk, a[k], b[k], itrain, ltrain) 
+               + jnp.sqrt(2*h) * np.random.normal(0, 1, w.shape)) 
+        v = (v + h*vgrad(wk, vk, a[k], b[k], itrain, ltrain) 
+               + jnp.sqrt(2*h) * np.random.normal(0, 1, v.shape))
+        
+        prox = wprox(w, v, a, b, itrain, ltrain)
+        w = w + prox
+
+    return a, b, w, v, lppd, error
+
+
+def pipgla_bnn_performance_activation(ltrain, itrain, h, K, a, b, w, v, gamma):
+    # Extract dimensions of latent variables:
+    Dw = w[:, :, 0].size  # Dimension of w.
+    Dv = v[:, :, 0].size  # Dimension of v.
+    N = w.shape[-1] # Number of particles.
+
+    for k in (tqdm(range(K))): 
+        # Temporarily store current particle cloud:
+        wk = w  # Input layer weights.
+        vk = v  # Output layer weights.
+
+        # Update parameter estimates (note that we are using the heuristic consisting on dividing the 
+        # alpha-gradient by Dw and the beta-gradient by Dv):
+
+        a = np.append(a, a[k] + h*ave_grad_param(wk, a[k])/(Dw) 
+                      + jnp.sqrt(2*h/N)*np.random.normal(0, 1, 1))  # Alpha.
+        b = np.append(b, b[k] + h*ave_grad_param(vk, b[k])/(Dv) 
+                      + jnp.sqrt(2*h/N)*np.random.normal(0, 1, 1))  # Beta.
+
+        # Update particle cloud:
+        w = (w  + h*wgrad(wk, vk, a[k], b[k], itrain, ltrain) 
+               + jnp.sqrt(2*h) * np.random.normal(0, 1, w.shape)) 
+        v = (v + h*vgrad(wk, vk, a[k], b[k], itrain, ltrain) 
+               + jnp.sqrt(2*h) * np.random.normal(0, 1, v.shape))
+        
+        prox = wprox(w, v, a, b, itrain, ltrain)
+        w = w + prox
+
+    return a, b, w, v
+
 
 ##############################################
 # PROXIMAL PARTICLE GRADIENT DESCENT ALGORITHM
@@ -126,7 +198,7 @@ def my_pgd_bnn_activation(ltrain, itrain, ltest, itest, h, K, a, b, w, v, gamma)
     return a, b, w, v, lppd, error
 
 
-def my_ipla_bnn_performance_activation(ltrain, itrain, h, K, a, b, w, v, gamma):
+def my_pgd_bnn_performance_activation(ltrain, itrain, h, K, a, b, w, v, gamma):
     # Extract dimensions of latent variables:
     Dw = w[:, :, 0].size  # Dimension of w.
     Dv = v[:, :, 0].size  # Dimension of v.
