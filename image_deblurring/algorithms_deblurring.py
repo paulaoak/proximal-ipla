@@ -70,6 +70,7 @@ def pipgla(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.0
     N = w.shape[-1] # Number of particles. 
 
     nmse_values = np.zeros(K)
+    mse_values = np.zeros(K)
     theta_values = np.zeros(K) 
     y_flat = y.flatten()
     y_flat = y_flat[:, None]
@@ -89,8 +90,9 @@ def pipgla(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.0
         original_reshape = original[:, :, None]
         err_aux = np.sum((w - original_reshape)**2, axis=(0,1)) / np.sum((original)**2)
         nmse_values[k] = np.mean(err_aux)
+        mse_values[k] = np.mean((w - original_reshape)**2)
 
-    return w, nmse_values, theta_values
+    return w, nmse_values, theta_values, mse_values
 
 
 def myipla(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.01, method_tv = "dr"):
@@ -101,6 +103,7 @@ def myipla(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.0
     N = w.shape[-1] # Number of particles. 
 
     nmse_values = np.zeros(K)
+    mse_values = np.zeros(K)
     theta_values = np.zeros(K) 
     y_flat = y.flatten()
     y_flat = y_flat[:, None]
@@ -120,8 +123,9 @@ def myipla(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.0
         original_reshape = original[:, :, None]
         err_aux = np.sum((w - original_reshape)**2, axis=(0,1)) / np.sum((original)**2)
         nmse_values[k] = np.mean(err_aux)
+        mse_values[k] = np.mean((w - original_reshape)**2)
 
-    return w, nmse_values, theta_values
+    return w, nmse_values, theta_values, mse_values
 
 
 def mypgd(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.01, method_tv = "dr"):
@@ -132,6 +136,7 @@ def mypgd(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.01
     N = w.shape[-1] # Number of particles. 
 
     nmse_values = np.zeros(K)
+    mse_values = np.zeros(K)
     theta_values = np.zeros(K) 
     y_flat = y.flatten()
     y_flat = y_flat[:, None]
@@ -151,5 +156,6 @@ def mypgd(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.01
         original_reshape = original[:, :, None]
         err_aux = np.sum((w - original_reshape)**2, axis=(0,1)) / np.sum((original)**2)
         nmse_values[k] = np.mean(err_aux)
+        mse_values[k] = np.mean((w - original_reshape)**2)
 
-    return w, nmse_values, theta_values
+    return w, nmse_values, theta_values, mse_values
