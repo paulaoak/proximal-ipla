@@ -62,7 +62,7 @@ def total_variation(x, Dx, Dy):
 ## ALGORITHMS
 ###########################
 
-def pipgla(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.01):
+def pipgla(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.01, method_tv = "dr"):
     """Samples from the posterior using PIPGLA with TV proximal operator."""
     
     w = w_init.copy()
@@ -83,7 +83,7 @@ def pipgla(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.0
         w_flat = w.reshape(-1, w.shape[2])
         grad_w = (-1 / sigma**2) * (H.T @ (H @ w_flat - y_flat))
         w = w + h * grad_w.reshape(w.shape) + np.sqrt(2 * h) * np.random.normal(0, 1, w.shape)
-        w = tv1_2d(w, np.exp(theta) * lambdaaa)  # Apply TV proximal operator
+        w = tv1_2d(w, np.exp(theta) * lambdaaa, method = method_tv)  # Apply TV proximal operator
 
         # Compute MSE
         original_reshape = np.tile(original, (1, 1, N))
@@ -93,7 +93,7 @@ def pipgla(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.0
     return w, nmse_values, theta_values
 
 
-def myipla(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.01):
+def myipla(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.01, method_tv = "dr"):
     """Samples from the posterior using MYIPLA with TV proximal operator."""
     
     w = w_init.copy()
@@ -113,7 +113,7 @@ def myipla(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.0
         # Particle updates
         w_flat = w.reshape(-1, w.shape[2])
         grad_w = (-1 / sigma**2) * (H.T @ (H @ w_flat - y_flat))
-        prox_term_w = tv1_2d(w, np.exp(theta) * lambdaaa)
+        prox_term_w = tv1_2d(w, np.exp(theta) * lambdaaa, method = method_tv)
         w = w * (1-h/lambdaaa) + h * grad_w.reshape(w.shape) + h/lambdaaa * prox_term_w + np.sqrt(2 * h) * np.random.normal(0, 1, w.shape)
 
         # Compute MSE
@@ -124,7 +124,7 @@ def myipla(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.0
     return w, nmse_values, theta_values
 
 
-def mypgd(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.01):
+def mypgd(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.01, method_tv = "dr"):
     """Samples from the posterior using MYPGD with TV proximal operator."""
     
     w = w_init.copy()
@@ -144,7 +144,7 @@ def mypgd(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.01
         # Particle updates
         w_flat = w.reshape(-1, w.shape[2])
         grad_w = (-1 / sigma**2) * (H.T @ (H @ w_flat - y_flat))
-        prox_term_w = tv1_2d(w, np.exp(theta) * lambdaaa)
+        prox_term_w = tv1_2d(w, np.exp(theta) * lambdaaa, method = method_tv)
         w = w * (1-h/lambdaaa) + h * grad_w.reshape(w.shape) + h/lambdaaa * prox_term_w + np.sqrt(2 * h) * np.random.normal(0, 1, w.shape)
 
         # Compute MSE
