@@ -76,7 +76,7 @@ def pipgla(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.0
 
     for k in tqdm(range(K)):
         # Parameter updates 
-        theta = theta + h * np.exp(theta) * np.mean(total_variation(w, Dx, Dy))/(Dw)  + np.sqrt(2*h/N)*np.random.normal(0, 1, 1)
+        theta = theta - h * np.exp(theta) * np.mean(total_variation(w, Dx, Dy))/(Dw)  + np.sqrt(2*h/N)*np.random.normal(0, 1, 1)
         theta_values[k] = theta
 
         # Particle updates
@@ -107,7 +107,7 @@ def myipla(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.0
 
     for k in tqdm(range(K)):
         # Parameter updates 
-        theta = theta + h * np.exp(theta) * np.mean(total_variation(w, Dx, Dy))/(Dw)  + np.sqrt(2*h/N)*np.random.normal(0, 1, 1)
+        theta = theta - h * np.exp(theta) * np.mean(total_variation(w, Dx, Dy))/(Dw)  + np.sqrt(2*h/N)*np.random.normal(0, 1, 1)
         theta_values[k] = theta
 
         # Particle updates
@@ -138,7 +138,7 @@ def mypgd(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.01
 
     for k in tqdm(range(K)):
         # Parameter updates 
-        theta = theta + h * np.exp(theta) * np.mean(total_variation(w, Dx, Dy))/(Dw)  + np.sqrt(2*h/N)*np.random.normal(0, 1, 1)
+        theta = theta - h * np.exp(theta) * np.mean(total_variation(w, Dx, Dy))/(Dw)  
         theta_values[k] = theta
 
         # Particle updates
