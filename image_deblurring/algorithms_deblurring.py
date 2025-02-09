@@ -86,8 +86,8 @@ def pipgla(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.0
         w = tv1_2d(w, np.exp(theta) * lambdaaa, method = method_tv)  # Apply TV proximal operator
 
         # Compute MSE
-        original_reshape = np.tile(original, (1, 1, N))
-        err_aux = np.sum((w - original_reshape)**2, axis=[0,1]) / np.sum((original)**2)
+        original_reshape = original[:, :, None]
+        err_aux = np.sum((w - original_reshape)**2, axis=(0,1)) / np.sum((original)**2)
         nmse_values[k] = np.mean(err_aux)
 
     return w, nmse_values, theta_values
@@ -117,8 +117,8 @@ def myipla(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.0
         w = w * (1-h/lambdaaa) + h * grad_w.reshape(w.shape) + h/lambdaaa * prox_term_w + np.sqrt(2 * h) * np.random.normal(0, 1, w.shape)
 
         # Compute MSE
-        original_reshape = np.tile(original, (1, 1, N))
-        err_aux = np.sum((w - original_reshape)**2, axis=[0,1]) / np.sum((original)**2)
+        original_reshape = original[:, :, None]
+        err_aux = np.sum((w - original_reshape)**2, axis=(0,1)) / np.sum((original)**2)
         nmse_values[k] = np.mean(err_aux)
 
     return w, nmse_values, theta_values
@@ -148,8 +148,8 @@ def mypgd(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.01
         w = w * (1-h/lambdaaa) + h * grad_w.reshape(w.shape) + h/lambdaaa * prox_term_w + np.sqrt(2 * h) * np.random.normal(0, 1, w.shape)
 
         # Compute MSE
-        original_reshape = np.tile(original, (1, 1, N))
-        err_aux = np.sum((w - original_reshape)**2, axis=[0,1]) / np.sum((original)**2)
+        original_reshape = original[:, :, None]
+        err_aux = np.sum((w - original_reshape)**2, axis=(0,1)) / np.sum((original)**2)
         nmse_values[k] = np.mean(err_aux)
 
     return w, nmse_values, theta_values
