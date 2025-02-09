@@ -52,9 +52,10 @@ def discrete_gradient(n1, n2):
 
 def total_variation(x, Dx, Dy):
     """Computes the total variation prior."""
-    grad_x = Dx @ x.flatten()
-    grad_y = Dy @ x.flatten()
-    return np.sum(np.sqrt(grad_x**2 + grad_y**2))
+    x_flat = x.reshape(-1, x.shape[2])
+    grad_x = Dx @ x_flat
+    grad_y = Dy @ x_flat
+    return np.sum(np.sqrt(grad_x**2 + grad_y**2), axis=0)
 
 
 ###########################
@@ -70,16 +71,19 @@ def pipgla(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.0
 
     nmse_values = np.zeros(K)
     theta_values = np.zeros(K) 
+    y_flat = y.flatten()
+    y_flat = y_flat[:, None]
 
     for k in tqdm(range(K)):
         # Parameter updates 
-        theta = theta + h/N * np.exp(theta) * total_variation(w, Dx, Dy)/Dw  + np.sqrt(2*h/N)*np.random.normal(0, 1, 1)
+        theta = theta + h * np.exp(theta) * np.mean(total_variation(w, Dx, Dy))/(Dw)  + np.sqrt(2*h/N)*np.random.normal(0, 1, 1)
         theta_values[k] = theta
 
         # Particle updates
-        grad_w = (-1 / sigma**2) * (H.T @ (H @ w.flatten() - y.flatten()))
+        w_flat = w.reshape(-1, w.shape[2])
+        grad_w = (-1 / sigma**2) * (H.T @ (H @ w_flat - y_flat))
         w = w + h * grad_w.reshape(w.shape) + np.sqrt(2 * h) * np.random.normal(0, 1, w.shape)
-        w = tv1_2d(w, np.exp(theta) * lambdaaa).reshape(w.shape)  # Apply TV proximal operator
+        w = tv1_2d(w, np.exp(theta) * lambdaaa)  # Apply TV proximal operator
 
         # Compute MSE
         original_reshape = np.tile(original, (1, 1, N))
@@ -98,15 +102,18 @@ def myipla(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.0
 
     nmse_values = np.zeros(K)
     theta_values = np.zeros(K) 
+    y_flat = y.flatten()
+    y_flat = y_flat[:, None]
 
     for k in tqdm(range(K)):
         # Parameter updates 
-        theta = theta + h/N * np.exp(theta) * total_variation(w, Dx, Dy)/Dw  + np.sqrt(2*h/N)*np.random.normal(0, 1, 1)
+        theta = theta + h * np.exp(theta) * np.mean(total_variation(w, Dx, Dy))/(Dw)  + np.sqrt(2*h/N)*np.random.normal(0, 1, 1)
         theta_values[k] = theta
 
         # Particle updates
-        grad_w = (-1 / sigma**2) * (H.T @ (H @ w.flatten() - y.flatten()))
-        prox_term_w = tv1_2d(w, np.exp(theta) * lambdaaa).reshape(w.shape)
+        w_flat = w.reshape(-1, w.shape[2])
+        grad_w = (-1 / sigma**2) * (H.T @ (H @ w_flat - y_flat))
+        prox_term_w = tv1_2d(w, np.exp(theta) * lambdaaa)
         w = w * (1-h/lambdaaa) + h * grad_w.reshape(w.shape) + h/lambdaaa * prox_term_w + np.sqrt(2 * h) * np.random.normal(0, 1, w.shape)
 
         # Compute MSE
@@ -126,15 +133,18 @@ def mypgd(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.01
 
     nmse_values = np.zeros(K)
     theta_values = np.zeros(K) 
+    y_flat = y.flatten()
+    y_flat = y_flat[:, None]
 
     for k in tqdm(range(K)):
         # Parameter updates 
-        theta = theta + h/N * np.exp(theta) * total_variation(w, Dx, Dy)/Dw  + np.sqrt(2*h/N)*np.random.normal(0, 1, 1)
+        theta = theta + h * np.exp(theta) * np.mean(total_variation(w, Dx, Dy))/(Dw)  + np.sqrt(2*h/N)*np.random.normal(0, 1, 1)
         theta_values[k] = theta
 
         # Particle updates
-        grad_w = (-1 / sigma**2) * (H.T @ (H @ w.flatten() - y.flatten()))
-        prox_term_w = tv1_2d(w, np.exp(theta) * lambdaaa).reshape(w.shape)
+        w_flat = w.reshape(-1, w.shape[2])
+        grad_w = (-1 / sigma**2) * (H.T @ (H @ w_flat - y_flat))
+        prox_term_w = tv1_2d(w, np.exp(theta) * lambdaaa)
         w = w * (1-h/lambdaaa) + h * grad_w.reshape(w.shape) + h/lambdaaa * prox_term_w + np.sqrt(2 * h) * np.random.normal(0, 1, w.shape)
 
         # Compute MSE
