@@ -2,6 +2,7 @@ import numpy as np
 import scipy.sparse as sp
 from tqdm import tqdm
 from prox_tv import tv1_2d
+from skimage.metrics import structural_similarity as ssim
 
 ###########################
 ## AUXILIARY FUNCTIONS
@@ -71,6 +72,7 @@ def pipgla(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.0
 
     nmse_values = np.zeros(K)
     mse_values = np.zeros(K)
+    ssim_values = np.zeros(K)
     theta_values = np.zeros(K) 
     y_flat = y.flatten()
     y_flat = y_flat[:, None]
@@ -91,8 +93,9 @@ def pipgla(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.0
         err_aux = np.sum((w - original_reshape)**2, axis=(0,1)) / np.sum((original)**2)
         nmse_values[k] = np.mean(err_aux)
         mse_values[k] = np.mean((w - original_reshape)**2)
+        ssim_values[k] = ssim(original, w[:, :, 0], data_range=w[:, :, 0].max() - w[:, :, 0].min())
 
-    return w, nmse_values, theta_values, mse_values
+    return w, nmse_values, theta_values, mse_values, ssim_values
 
 
 def myipla(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.01, method_tv = "dr"):
@@ -104,6 +107,7 @@ def myipla(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.0
 
     nmse_values = np.zeros(K)
     mse_values = np.zeros(K)
+    ssim_values = np.zeros(K)
     theta_values = np.zeros(K) 
     y_flat = y.flatten()
     y_flat = y_flat[:, None]
@@ -124,8 +128,9 @@ def myipla(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.0
         err_aux = np.sum((w - original_reshape)**2, axis=(0,1)) / np.sum((original)**2)
         nmse_values[k] = np.mean(err_aux)
         mse_values[k] = np.mean((w - original_reshape)**2)
+        ssim_values[k] = ssim(original, w[:, :, 0], data_range=w[:, :, 0].max() - w[:, :, 0].min())
 
-    return w, nmse_values, theta_values, mse_values
+    return w, nmse_values, theta_values, mse_values, ssim_values
 
 
 def mypgd(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.01, method_tv = "dr"):
@@ -137,6 +142,7 @@ def mypgd(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.01
 
     nmse_values = np.zeros(K)
     mse_values = np.zeros(K)
+    ssim_values = np.zeros(K)
     theta_values = np.zeros(K) 
     y_flat = y.flatten()
     y_flat = y_flat[:, None]
@@ -157,5 +163,6 @@ def mypgd(theta, w_init, H, y, sigma, lambdaaa, Dx, Dy, original, K=1000, h=0.01
         err_aux = np.sum((w - original_reshape)**2, axis=(0,1)) / np.sum((original)**2)
         nmse_values[k] = np.mean(err_aux)
         mse_values[k] = np.mean((w - original_reshape)**2)
+        ssim_values[k] = ssim(original, w[:, :, 0], data_range=w[:, :, 0].max() - w[:, :, 0].min())
 
-    return w, nmse_values, theta_values, mse_values
+    return w, nmse_values, theta_values, mse_values, ssim_values
